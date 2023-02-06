@@ -1,11 +1,11 @@
-import { prisma } from "@/config";
+import { prisma } from '@/config';
 
 async function findFirst() {
-  return prisma.event.findFirst();
+	return prisma.event.findFirst();
 }
 
 const eventRepository = {
-  findFirst,
+	findFirst,
 };
 
 export default eventRepository;
