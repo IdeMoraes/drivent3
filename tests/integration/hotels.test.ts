@@ -67,7 +67,7 @@ describe('GET /hotels', () => {
 				updatedAt: hotel.updatedAt.toISOString()
 			}]);
 		});
-		it('should respond with status 200 and an empty array', async () => {
+		it('should respond with status 200 and an empty array if there is no hotel', async () => {
 			const user = await createUser();
 			const token = await generateValidToken(user);
 			const enrollment = await createEnrollmentWithAddress(user);
@@ -114,7 +114,23 @@ describe('GET /hotels/:hotelId', () => {
 		expect(response.status).toBe(httpStatus.UNAUTHORIZED);
 	});
 	describe('when token is valid', () => {
-		it('should respond with status 200 and a hotel with no rooms', async () => {
+		it('should respond with status 404 for invalid hotelId', async () => {
+			const user = await createUser();
+			const token = await generateValidToken(user);
+			const enrollment = await createEnrollmentWithAddress(user);
+			const ticketType = await createTicketTypeWithHotel();
+			const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+			const payment = await createPayment(ticket.id, ticketType.price);
+			const hotel = await prisma.hotel.create({
+				data:{
+					name: 'Cheval Blanc St-Tropez',
+					image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/27/a4/49/a4/cheval-blanc-st-tropez.jpg?w=700&h=-1&s=1'
+				}
+			});
+			const response = await server.get('/hotels/987654321').set('Authorization', `Bearer ${token}`);
+			expect(response.status).toEqual(httpStatus.NOT_FOUND);
+		});
+		it('should respond with status 200 and a hotel with rooms', async () => {
 			const user = await createUser();
 			const token = await generateValidToken(user);
 			const enrollment = await createEnrollmentWithAddress(user);
@@ -136,7 +152,7 @@ describe('GET /hotels/:hotelId', () => {
 			});
 			const response = await server.get(`/hotels/${hotel.id}`).set('Authorization', `Bearer ${token}`);
 			expect(response.status).toEqual(httpStatus.OK);
-			expect(response.body).toEqual([{
+			expect(response.body).toEqual({
 				id: hotel.id,
 				name: hotel.name,
 				image: hotel.image,
@@ -150,9 +166,9 @@ describe('GET /hotels/:hotelId', () => {
 					createdAt: room.createdAt.toISOString(),
 					updatedAt: room.updatedAt.toISOString()
 				}]
-			}]);
+			});
 		});
-		it('should respond with status 200 and a hotel with rooms', async () => {
+		it('should respond with status 200 and a hotel with no rooms', async () => {
 			const user = await createUser();
 			const token = await generateValidToken(user);
 			const enrollment = await createEnrollmentWithAddress(user);
@@ -165,28 +181,16 @@ describe('GET /hotels/:hotelId', () => {
 					image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/27/a4/49/a4/cheval-blanc-st-tropez.jpg?w=700&h=-1&s=1'
 				}
 			});
-
 			const response = await server.get(`/hotels/${hotel.id}`).set('Authorization', `Bearer ${token}`);
 			expect(response.status).toEqual(httpStatus.OK);
-			expect(response.body).toEqual([{
+			expect(response.body).toEqual({
 				id: hotel.id,
 				name: hotel.name,
 				image: hotel.image,
 				createdAt: hotel.createdAt.toISOString(),
 				updatedAt: hotel.updatedAt.toISOString(),
 				Rooms: []
-			}]);
-		});
-		it('should respond with status 200 and an empty array', async () => {
-			const user = await createUser();
-			const token = await generateValidToken(user);
-			const enrollment = await createEnrollmentWithAddress(user);
-			const ticketType = await createTicketTypeWithHotel();
-			const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-			const payment = await createPayment(ticket.id, ticketType.price);
-			const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
-			expect(response.status).toEqual(httpStatus.OK);
-			expect(response.body).toEqual([]);
+			});
 		});
 		it('should respond with status 402 when ticket is remote, ticket is not paid or ticket is wihtout hotel', async () => {
 			const user = await createUser();

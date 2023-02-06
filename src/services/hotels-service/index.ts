@@ -25,8 +25,11 @@ async function getHotelsWithRooms(userId: number, hotelId: number){
 	if(!ticket || ticket.status==='RESERVED' || ticket.TicketType.isRemote || !ticket.TicketType.includesHotel){
 		throw cannotListHotelsError();
 	}
-	const hotels = await hotelRepository.findRoomsByHotelId(hotelId);
-	return hotels;
+	const hotel = await hotelRepository.findRoomsByHotelId(hotelId);
+	if(!hotel){
+		throw notFoundError();
+	}
+	return hotel;
 }
 
 const hotelService = {
